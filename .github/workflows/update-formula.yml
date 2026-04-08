@@ -1,0 +1,109 @@
+name: Update Formula
+
+on:
+  repository_dispatch:
+    types: [update-formula]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    name: Update autoauto formula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get release info
+        id: release
+        run: |
+          VERSION="${{ github.event.client_payload.version }}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Updating formula to v${VERSION}"
+
+      - name: Download binaries and compute checksums
+        id: checksums
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          BASE_URL="https://github.com/SpaceK33z/autoauto/releases/download/v${VERSION}"
+
+          for target in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
+            echo "Downloading autoauto-${target}..."
+            curl -sL "${BASE_URL}/autoauto-${target}" -o "/tmp/autoauto-${target}"
+            SHA=$(sha256sum "/tmp/autoauto-${target}" | awk '{print $1}')
+            # Convert hyphens to underscores for env var names
+            VAR_NAME=$(echo "${target}" | tr '-' '_')
+            echo "sha_${VAR_NAME}=${SHA}" >> "$GITHUB_OUTPUT"
+            echo "  ${target}: ${SHA}"
+          done
+
+      - name: Generate formula
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          cat > Formula/autoauto.rb << 'FORMULA'
+          # typed: false
+          # frozen_string_literal: true
+
+          class Autoauto < Formula
+            desc "TUI tool for autoresearch — autonomous experiment loops on any codebase"
+            homepage "https://github.com/SpaceK33z/autoauto"
+            license "MIT"
+            version "VERSION_PLACEHOLDER"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-darwin-arm64"
+                sha256 "SHA_DARWIN_ARM64"
+              end
+
+              on_intel do
+                url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-darwin-x64"
+                sha256 "SHA_DARWIN_X64"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-linux-arm64"
+                sha256 "SHA_LINUX_ARM64"
+              end
+
+              on_intel do
+                url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-linux-x64"
+                sha256 "SHA_LINUX_X64"
+              end
+            end
+
+            def install
+              binary = stable.url.split("/").last
+              bin.install binary => "autoauto"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/autoauto --version", 2)
+            end
+          end
+          FORMULA
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/" Formula/autoauto.rb
+          sed -i "s/SHA_DARWIN_ARM64/${{ steps.checksums.outputs.sha_darwin_arm64 }}/" Formula/autoauto.rb
+          sed -i "s/SHA_DARWIN_X64/${{ steps.checksums.outputs.sha_darwin_x64 }}/" Formula/autoauto.rb
+          sed -i "s/SHA_LINUX_X64/${{ steps.checksums.outputs.sha_linux_x64 }}/" Formula/autoauto.rb
+          sed -i "s/SHA_LINUX_ARM64/${{ steps.checksums.outputs.sha_linux_arm64 }}/" Formula/autoauto.rb
+
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' Formula/autoauto.rb
+
+          echo "Generated formula:"
+          cat Formula/autoauto.rb
+
+      - name: Commit and push
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/autoauto.rb
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "autoauto ${VERSION}"
+          git push
