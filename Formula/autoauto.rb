@@ -5,29 +5,29 @@ class Autoauto < Formula
   desc "TUI tool for autoresearch — autonomous experiment loops on any codebase"
   homepage "https://github.com/SpaceK33z/autoauto"
   license "MIT"
-  version "1.2.0"
+  version "1.5.0"
 
   on_macos do
     on_arm do
       url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-darwin-arm64"
-      sha256 "58ab7c0fe1f4fddbad5677c89e8a314683950e883ac64e9cc3df9c79d7b7107c"
+      sha256 "6aad45ffb62d02a7ccc2b82b7ecc8977d1753a62f4c8266ab4eee292d001d873"
     end
 
     on_intel do
       url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-darwin-x64"
-      sha256 "PLACEHOLDER"
+      sha256 "8c0204a1e6d9897cb706e1daf59ec0846483bc0e6ab06988227beca55c6c362d"
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-linux-arm64"
-      sha256 "9763665829f31900a3b3da704e6801de0a897fe0c7c5bec2d0744a90d0b3c51f"
+      sha256 "aea3a58629453ae70f151f5b3ffdee31b3aebefe64770572b1739c57f8babbd3"
     end
 
     on_intel do
       url "https://github.com/SpaceK33z/autoauto/releases/download/v#{version}/autoauto-linux-x64"
-      sha256 "4a0cd303da890011f1104a96c7b5daaf87256bd7e2d4aa2d55fcceb5f43c448e"
+      sha256 "08362e7f85dad971fd0a718a17cdf1a98b06aab94a819d0c09d3ffcbc39b0b9b"
     end
   end
 
